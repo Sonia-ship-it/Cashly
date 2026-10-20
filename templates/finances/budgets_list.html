@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Budgets — Cashly{% endblock %}
+{% block page_title %}Budget Management{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.4rem; font-weight: 800;">Monthly Spending Limits</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Monitor category spending ceilings and remaining daily allowances
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <!-- Period Selector -->
+      <form method="get" style="display: flex; gap: 8px;">
+        <select name="month" class="form-select" onchange="this.form.submit()" style="padding: 6px 12px; font-size: 0.85rem;">
+          {% for m_num, m_name in months %}
+          <option value="{{ m_num }}" {% if m_num == current_month %}selected{% endif %}>{{ m_name }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" name="year" value="{{ current_year }}" class="form-input" style="width: 85px; padding: 6px 10px; font-size: 0.85rem;" onchange="this.form.submit()">
+      </form>
+
+      <a href="{% url 'finances:budgets_bulk_setup' %}?month={{ current_month }}&year={{ current_year }}" class="btn btn-secondary btn-sm" style="background: var(--primary-100); color: var(--primary-800); border-color: var(--primary-200); font-weight: 700;">
+        ⚡ Plan All Budgets at Once
+      </a>
+
+      <a href="{% url 'finances:budget_create' %}" class="btn btn-primary btn-sm">
+        + Create Single
+      </a>
+    </div>
+  </div>
+
+  <!-- Budgets Grid -->
+  {% if budgets %}
+  <div class="card-grid-compact">
+    {% for b in budgets %}
+    <div class="compact-card">
+      <div>
+        <!-- Header row -->
+        <div class="card-header-row">
+          <div class="card-header-left">
+            <div class="card-dot-icon" style="background: {{ b.budget.category.color }}18; color: {{ b.budget.category.color }};">
+              ●
+            </div>
+            <h3 class="card-title" title="{{ b.budget.category.name }}">{{ b.budget.category.name }}</h3>
+          </div>
+
+          <span class="badge {% if b.status == 'exceeded' %}badge-expense{% elif b.status == 'warning' %}badge-warning{% else %}badge-income{% endif %}" style="font-size: 0.72rem; padding: 2px 7px;">
+            {% if b.status == 'exceeded' %}Exceeded ({{ b.usage_pct }}%){% elif b.status == 'warning' %}Near Limit ({{ b.usage_pct }}%){% else %}On Track ({{ b.usage_pct }}%){% endif %}
+          </span>
+        </div>
+
+        <!-- Amount breakdown -->
+        <div class="card-amount-row">
+          <div>
+            <span class="card-amount-primary">{{ currency }} {{ b.spent|floatformat:0 }}</span>
+            <span class="card-amount-secondary">spent</span>
+          </div>
+          <span class="card-amount-secondary">
+            Limit: <strong>{{ currency }} {{ b.limit|floatformat:0 }}</strong>
+          </span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-container" style="height: 6px; margin-bottom: 6px;">
+          <div class="progress-bar-fill {% if b.status == 'exceeded' %}progress-fill-rose{% elif b.status == 'warning' %}progress-fill-amber{% else %}progress-fill-emerald{% endif %}"
+               data-width="{{ b.usage_pct|floatformat:0 }}"></div>
+        </div>
+      </div>
+
+      <!-- Summary row (Remaining + View Details Toggle) -->
+      <div>
+        <div class="card-summary-row">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.76rem;">Remaining: </span>
+            <strong class="{% if b.remaining < 0 %}text-negative{% else %}text-emerald{% endif %}">
+              {{ currency }} {{ b.remaining|floatformat:0 }}
+            </strong>
+          </div>
+          <button type="button" class="btn-view-details" onclick="toggleCardDetails('budget-details-{{ b.budget.pk }}', this)" aria-expanded="false">
+            View Details ▾
+          </button>
+        </div>
+
+        <!-- Hidden Details Drawer -->
+        <div id="budget-details-{{ b.budget.pk }}" class="card-details-drawer">
+          <div class="card-details-list">
+            <div class="card-details-item">
+              <span class="card-details-label">Alert Trigger Threshold:</span>
+              <span class="card-details-val">{{ b.budget.alert_threshold }}%</span>
+            </div>
+            <div class="card-details-item">
+              <span class="card-details-label">Daily Spendable:</span>
+              <span class="card-details-val" style="color: var(--primary-700);">
+                {% if b.remaining > 0 %}{{ currency }} {{ b.daily_allowance|floatformat:0 }}/day{% else %}None{% endif %}
+              </span>
+            </div>
+            <div class="card-details-item">
+              <span class="card-details-label">Period:</span>
+              <span class="card-details-val">{{ month_name }} {{ current_year }}</span>
+            </div>
+          </div>
+          <div class="card-drawer-actions">
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Budget #{{ b.budget.pk }}</span>
+            <a href="{% url 'finances:budget_delete' b.budget.pk %}" class="btn-card-action-delete" onclick="return confirm('Delete budget for {{ b.budget.category.name }}?')">
+              🗑 Delete Budget
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align: center; padding: 48px 20px;">
+    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">No budgets configured for {{ month_name }} {{ current_year }}</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto 20px auto;">
+      Setting category budgets helps Cashly track your spending limits and give you real-time warnings before you overspend.
+    </p>
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <a href="{% url 'finances:budgets_bulk_setup' %}?month={{ current_month }}&year={{ current_year }}" class="btn btn-primary">
+        ⚡ Plan All Budgets at Once
+      </a>
+      <a href="{% url 'finances:budget_create' %}" class="btn btn-secondary">
+        + Create Single Category
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

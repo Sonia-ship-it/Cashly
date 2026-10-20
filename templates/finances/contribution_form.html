@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Contribute to {{ goal.title }} — Cashly{% endblock %}
+{% block page_title %}Contribute to Savings Goal{% endblock %}
+
+{% block content %}
+<div style="max-width: 540px; margin: 0 auto;">
+  <div class="card">
+    <div style="margin-bottom: 20px;">
+      <h2 style="font-size: 1.35rem; font-weight: 700;">Deposit Funds to "{{ goal.title }}"</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Currently saved: <strong>{{ goal.current_amount }}</strong> of <strong>{{ goal.target_amount }}</strong>
+      </p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Contribution Amount</label>
+        {{ form.amount }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Deposit Date</label>
+        {{ form.date }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes (Optional)</label>
+        {{ form.notes }}
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <a href="{% url 'finances:savings' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Record Contribution</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

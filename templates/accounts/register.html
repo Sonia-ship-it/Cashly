@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account — Cashly{% endblock %}
+
+{% block content %}
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <div style="max-width: 480px; width: 100%;">
+    
+    <div style="text-align: center; margin-bottom: 28px;">
+      <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem; font-weight: 800; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.35); margin-bottom: 14px;">$</div>
+      <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px;">Create your Cashly Account</h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px;">
+        Join Cashly to track expenses, manage budgets, and reach savings goals.
+      </p>
+    </div>
+
+    <div class="card" style="box-shadow: var(--shadow-lg);">
+      <form method="post" action="{% url 'accounts:register' %}">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="alert-message alert-error">
+          <span>Please correct the errors below.</span>
+        </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            {{ form.first_name }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            {{ form.last_name }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px;">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px;">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Primary Currency</label>
+          {{ form.currency_code }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          {{ form.password }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          {{ form.password_confirm }}
+          {% if form.password_confirm.errors %}<div style="color: #dc2626; font-size: 0.8rem; margin-top: 4px;">{{ form.password_confirm.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div style="background: var(--primary-50); border: 1px solid var(--primary-100); border-radius: var(--radius-md); padding: 12px; margin-bottom: 20px; font-size: 0.85rem; color: var(--primary-900);">
+          <strong>Group & Permissions:</strong> New accounts are automatically assigned to the <strong>Standard User</strong> role with full access to record transactions, create category budgets, and calculate summaries via PyBasics Kit.
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+          Create My Account
+        </button>
+      </form>
+
+      <div style="margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+        Already have an account? <a href="{% url 'accounts:login' %}" style="color: var(--primary-600); font-weight: 600; text-decoration: none;">Sign in here</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
