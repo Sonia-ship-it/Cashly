@@ -1,0 +1,279 @@
+================================================================================
+CASHLY — PERSONAL FINANCE & BUDGETING SYSTEM
+COMPLETE USER & TESTING GUIDE + PYBASICS KIT ARCHITECTURE
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. System Access & User Accounts
+2. Ready-to-Use Sample Test Data (Budgets, Transactions, Savings Goals)
+3. Step-by-Step Testing Walkthrough
+4. PyBasics Kit Integration & File Map
+5. Permission Matrix & Role Switching
+
+
+================================================================================
+1. SYSTEM ACCESS & USER ACCOUNTS
+================================================================================
+
+Server URL: http://127.0.0.1:8000/
+Sign-In URL: http://127.0.0.1:8000/auth/login/
+
+You have 3 accounts in the database:
+
+1) Standard User (Pre-seeded Demo)
+   - Username: demo
+   - Password: demo12345
+   - Name: Alex Mugisha (demo@cashly.local)
+   - Status: Contains preloaded salaries, expenses, 6 active budgets, and 2 savings goals.
+   - Shortcut: Click "Standard User Demo" button on the login screen.
+
+2) Financial Manager (Pre-seeded Manager)
+   - Username: manager
+   - Password: manager12345
+   - Name: Finance Admin (manager@cashly.local)
+   - Status: Has elevated permissions to audit all transactions across users and export data.
+   - Shortcut: Click "Financial Manager Demo" button on the login screen.
+
+3) User Account
+   - Username: Sony
+   - Name: Uwase Sonia (uwasesonia43@gmail.com)
+   - Role: Standard User
+
+
+================================================================================
+2. READY-TO-USE SAMPLE TEST DATA
+================================================================================
+
+When creating new records to test calculations, you can use these exact sample values:
+
+--- SAMPLE BUDGETS ---
+Plan All at Once: http://127.0.0.1:8000/budgets/plan/
+Single Entry:     http://127.0.0.1:8000/budgets/new/
+
+[Budget Sample 1 - Food & Dining]
+- Category: Food & Dining
+- Monthly Limit: 80,000 RWF (or 80.00 USD)
+- Alert Threshold: 80%
+- Expected behavior: If spending reaches 64,000 (80%), a warning alert appears.
+
+[Budget Sample 2 - Shopping & Groceries]
+- Category: Shopping & Groceries
+- Monthly Limit: 50,000 RWF
+- Alert Threshold: 75%
+- Expected behavior: Warns at 37,500 RWF.
+
+[Budget Sample 3 - Transport & Commute]
+- Category: Transport & Commute
+- Monthly Limit: 30,000 RWF
+- Alert Threshold: 70%
+
+[Budget Sample 4 - Entertainment & Leisure]
+- Category: Entertainment & Leisure
+- Monthly Limit: 25,000 RWF
+- Alert Threshold: 85%
+
+[Budget Sample 5 - Utilities & Internet]
+- Category: Utilities & Internet
+- Monthly Limit: 35,000 RWF
+- Alert Threshold: 90%
+
+
+--- SAMPLE TRANSACTIONS ---
+Record Multiple at Once: http://127.0.0.1:8000/transactions/batch/
+Single Entry:            http://127.0.0.1:8000/transactions/new/
+
+[Income Sample 1]
+- Type: INCOME
+- Category: Salary
+- Amount: 500,000 RWF
+- Date: 1st of current month
+- Description: Primary Monthly Salary
+
+[Income Sample 2]
+- Type: INCOME
+- Category: Freelance & Side Hustle
+- Amount: 120,000 RWF
+- Date: 5th of current month
+- Description: Web Application Consulting
+
+[Expense Sample 1 - Safe within budget]
+- Type: EXPENSE
+- Category: Food & Dining
+- Amount: 20,000 RWF
+- Date: Today
+- Description: Supermarket Groceries
+
+[Expense Sample 2 - Triggers Warning Alert (> 80%)]
+- Type: EXPENSE
+- Category: Food & Dining
+- Amount: 48,000 RWF
+- Date: Today
+- Description: Dinner with Family & Friends
+*Result: Pushes Food total to 68,000 / 80,000 (85%) -> triggers amber warning!*
+
+[Expense Sample 3 - Triggers Exceeded Alert (> 100%)]
+- Type: EXPENSE
+- Category: Food & Dining
+- Amount: 20,000 RWF
+- Date: Today
+- Description: Weekend Special Catering
+*Result: Pushes Food total to 88,000 / 80,000 (110%) -> triggers red danger alert!*
+
+
+--- SAMPLE SAVINGS GOALS ---
+Go to: http://127.0.0.1:8000/savings/new/
+
+[Savings Goal Sample 1]
+- Title: New Workstation Laptop
+- Target Amount: 850,000 RWF
+- Target Date: Pick date 3 months from now
+- Notes: High performance development machine
+- Test Contribution: Click "+ Contribute" and add 150,000 RWF.
+
+[Savings Goal Sample 2]
+- Title: Emergency Safety Fund
+- Target Amount: 1,200,000 RWF
+- Target Date: Pick date 6 months from now
+- Notes: 6 months of basic living expenses
+
+
+================================================================================
+3. STEP-BY-STEP TESTING WALKTHROUGH
+================================================================================
+
+TEST STEP 1: Quick Sign-In
+1. Open http://127.0.0.1:8000/auth/login/ in your browser.
+2. Click "Standard User Demo" to sign in instantly as Alex Mugisha.
+
+TEST STEP 2: Verify Dashboard & Chart Analytics
+1. Look at the 4 top KPI cards:
+   - Total Income
+   - Total Expenses
+   - Net Balance
+   - Savings Rate %
+2. Verify the 6-Month Cash Flow Trends bar chart shows income vs expenses.
+3. Verify the Category Expense Donut chart shows percentage distribution.
+4. Click the Month filter dropdown at top-left to inspect previous months.
+
+TEST STEP 3: Test Dynamic Budget Alert System
+1. Go to Budgets: http://127.0.0.1:8000/budgets/
+2. Observe the progress bars and "Remaining" balances.
+3. Click "+ Record Transaction" from the top navigation bar.
+4. Add an expense under "Food & Dining" for 50,000 RWF.
+5. Notice the alert notification bell (top-right) updates with a warning:
+   "Budget Alert: Food & Dining nearing limit".
+
+TEST STEP 4: Test Savings Goals & Contributions
+1. Go to Savings Goals: http://127.0.0.1:8000/savings/
+2. Click "+ Contribute" on "New Workstation Laptop".
+3. Deposit 100,000 RWF.
+4. Watch the progress percentage bar recalculate and update remaining amount.
+
+TEST STEP 5: Test Search, Filters & CSV Export
+1. Go to Transactions: http://127.0.0.1:8000/transactions/
+2. Filter by Type = "EXPENSE".
+3. Search for "Rent".
+4. Click "Export CSV" button to download a spreadsheet of your transactions.
+
+TEST STEP 6: Test Financial Manager Audit Mode
+1. Log out and click "Financial Manager Demo" (or switch your role in Profile).
+2. Go to Transactions.
+3. Check the "Audit All Transactions" toggle to see transactions across all accounts.
+
+TEST STEP 7: Run Automated Unit Tests
+1. In your project terminal, run:
+   python manage.py test
+2. Output will confirm that all 6 test cases pass (calculators, budgets, savings).
+
+
+================================================================================
+4. HOW THE PACKAGE ('pybasics_kit') IS BEING USED
+================================================================================
+
+Cashly delegates all financial and mathematical computations to the external
+library `pybasics_kit`, keeping database storage decoupled from business math.
+
+The package is imported and used in the following files:
+
+--------------------------------------------------------------------------------
+A. finances/services/calculator.py
+--------------------------------------------------------------------------------
+This is the primary mathematical engine. It imports 12 functions from `pybasics_kit`:
+
+1. pybasics_kit.calculate_balance(income, expenses)
+   - Used in: compute_financial_summary()
+   - Purpose: Computes Net Balance (Income minus Expenses).
+
+2. pybasics_kit.calculate_savings(income, expenses)
+   - Used in: compute_financial_summary()
+   - Purpose: Computes positive savings delta.
+
+3. pybasics_kit.calculate_savings_rate(income, savings)
+   - Used in: compute_financial_summary()
+   - Purpose: Computes savings as a percentage of total income.
+
+4. pybasics_kit.calculate_total_expenses(expenses)
+   - Used in: compute_financial_summary()
+   - Purpose: Aggregates total monthly expense totals.
+
+5. pybasics_kit.calculate_percentage_change(old, new)
+   - Used in: compute_financial_summary()
+   - Purpose: Computes month-over-month growth or reduction (+/- %) for income and expenses.
+
+6. pybasics_kit.calculate_budget_usage(spending, budget)
+   - Used in: compute_budget_details() and compute_financial_summary()
+   - Purpose: Computes percentage of budget consumed so far.
+
+7. pybasics_kit.calculate_budget_remaining(budget, spending)
+   - Used in: compute_budget_details() and compute_savings_goal_details()
+   - Purpose: Computes leftover budget allowance, and remaining amount to hit savings goals.
+
+8. pybasics_kit.calculate_daily_budget(remaining, days)
+   - Used in: compute_budget_details() and compute_financial_summary()
+   - Purpose: Divides remaining budget by remaining days in the month to calculate daily spending allowance.
+
+9. pybasics_kit.calculate_percentage(value, total)
+   - Used in: compute_category_breakdown() and compute_savings_goal_details()
+   - Purpose: Calculates each category's share of total spending for the donut chart and savings goal completion %.
+
+
+--------------------------------------------------------------------------------
+B. finances/views.py (Line 373)
+--------------------------------------------------------------------------------
+- Used in: reports_view()
+- Functions used:
+    calculate_balance(income, expenses)
+    calculate_savings(income, expenses)
+    calculate_savings_rate(income, savings)
+- Purpose: Aggregates the 12-month annual totals in the Annual Financial Report page.
+
+
+--------------------------------------------------------------------------------
+C. finances/tests.py (Lines 8-12)
+--------------------------------------------------------------------------------
+- Used in: PyBasicsKitIntegrationTests
+- Verifies that all calculations run accurately against Django model instances.
+
+
+================================================================================
+5. PERMISSION MATRIX & ROLE SWITCHING
+================================================================================
+
+Roles defined in `accounts/permissions.py`:
+
+- Standard User:
+  Can view/edit/delete own transactions, budgets, goals. Cannot see other users.
+
+- Financial Manager:
+  All Standard capabilities + Audit All Transactions + Override Limits + Delete Category.
+
+- Auditor:
+  Read-only view of all transactions and budgets + CSV Export clearance.
+
+- Viewer:
+  Read-only view of personal dashboard without modification permissions.
+
+*To switch your role for testing:*
+Visit http://127.0.0.1:8000/auth/profile/, pick a role under "Role Assignment", and click Save.
+================================================================================

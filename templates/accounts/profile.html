@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}User Profile & Permissions — Cashly{% endblock %}
+{% block page_title %}Profile & Access Management{% endblock %}
+
+{% block content %}
+<div style="max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- User Details & Settings -->
+  <div class="card">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 700;">Account Settings</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem;">Manage your user info, display currency, and preferences</p>
+      </div>
+      <span class="badge" style="background: var(--primary-100); color: var(--primary-800); font-size: 0.85rem; padding: 6px 12px;">
+        Role: {{ current_role }}
+      </span>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          {{ form.first_name }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          {{ form.last_name }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        {{ form.email }}
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Currency Code</label>
+          {{ form.currency_code }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency Symbol</label>
+          {{ form.currency_symbol }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Overall Monthly Target / Ceiling (Optional)</label>
+        {{ form.monthly_budget_target }}
+      </div>
+
+      <!-- Role Switcher for Testing Groups & Permissions -->
+      <div style="margin-top: 10px; padding: 16px; background: #f8faf9; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+          <span>Group / Role Assignment</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Switch role to evaluate permissions</span>
+        </label>
+        <select name="role_assignment" class="form-select">
+          {% for r in all_roles %}
+          <option value="{{ r }}" {% if r == current_role %}selected{% endif %}>{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Permissions Inspector Card -->
+  <div class="card">
+    <div style="margin-bottom: 16px;">
+      <h3 style="font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <svg style="width: 20px; height: 20px; color: var(--primary-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Role & Group Permissions Matrix
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Below is the live security capability matrix granted to your account via Django Groups.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">Record Own Transactions</div>
+        <div style="font-size: 0.78rem; color: var(--emerald); font-weight: 600;">✓ Granted (Standard User)</div>
+      </div>
+
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">Manage Personal Budgets</div>
+        <div style="font-size: 0.78rem; color: var(--emerald); font-weight: 600;">✓ Granted (Standard User)</div>
+      </div>
+
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">Export Financial Reports (CSV)</div>
+        <div class="{% if perms.finances.can_export_transactions or user.is_superuser %}text-perm-granted{% else %}text-perm-denied{% endif %}" style="font-size: 0.78rem; font-weight: 600;">
+          {% if perms.finances.can_export_transactions or user.is_superuser %}✓ Active Permission{% else %}✗ Requires Manager or Auditor{% endif %}
+        </div>
+      </div>
+
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">System Audit Across Users</div>
+        <div class="{% if perms.finances.can_audit_all_transactions or user.is_superuser %}text-perm-granted{% else %}text-perm-denied{% endif %}" style="font-size: 0.78rem; font-weight: 600;">
+          {% if perms.finances.can_audit_all_transactions or user.is_superuser %}✓ Active Permission{% else %}✗ Requires Auditor or Manager{% endif %}
+        </div>
+      </div>
+
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">Manage Shared Categories</div>
+        <div class="{% if perms.finances.can_manage_shared_categories or user.is_superuser %}text-perm-granted{% else %}text-perm-denied{% endif %}" style="font-size: 0.78rem; font-weight: 600;">
+          {% if perms.finances.can_manage_shared_categories or user.is_superuser %}✓ Active Permission{% else %}✗ Requires Financial Manager{% endif %}
+        </div>
+      </div>
+
+      <div style="padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: #ffffff;">
+        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 4px;">PyBasics Kit Calculations</div>
+        <div style="font-size: 0.78rem; color: var(--emerald); font-weight: 600;">✓ Integrated into all views</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

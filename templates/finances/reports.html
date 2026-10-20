@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Analytics — Cashly{% endblock %}
+{% block page_title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 28px;">
+
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.4rem; font-weight: 800;">Annual Financial Analysis ({{ year }})</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Comprehensive breakdown powered by <strong>PyBasics Kit</strong> financial algorithms
+      </p>
+    </div>
+
+    <!-- Year Filter -->
+    <form method="get" style="display: flex; gap: 10px; align-items: center;">
+      <label class="form-label" style="margin-bottom: 0; font-size: 0.85rem;">Select Year:</label>
+      <input type="number" name="year" value="{{ year }}" class="form-input" style="width: 90px; padding: 6px 10px;" onchange="this.form.submit()">
+    </form>
+  </div>
+
+  <!-- Annual High-Level Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card income">
+      <div class="metric-header">
+        <span class="metric-title">Annual Gross Income</span>
+      </div>
+      <div class="metric-value">{{ currency }} {{ total_income_year|floatformat:2 }}</div>
+      <div class="metric-sub">Cumulative 12-Month Total</div>
+    </div>
+
+    <div class="metric-card expense">
+      <div class="metric-header">
+        <span class="metric-title">Annual Expenditures</span>
+      </div>
+      <div class="metric-value">{{ currency }} {{ total_expense_year|floatformat:2 }}</div>
+      <div class="metric-sub">Sum of all categorised expenses</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">Annual Net Balance</span>
+      </div>
+      <div class="metric-value {% if year_balance >= 0 %}text-positive{% else %}text-negative{% endif %}">
+        {{ currency }} {{ year_balance|floatformat:2 }}
+      </div>
+      <div class="metric-sub">via <code>calculate_balance</code></div>
+    </div>
+
+    <div class="metric-card savings">
+      <div class="metric-header">
+        <span class="metric-title">Annual Savings Rate</span>
+      </div>
+      <div class="metric-value">{{ year_savings_rate }}%</div>
+      <div class="metric-sub">
+        Total saved: {{ currency }} {{ year_savings|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 12-Month Annual Trend Chart -->
+  <div class="card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 16px;">12-Month Cash Flow Distribution</h3>
+    <div style="height: 260px; position: relative;">
+      <canvas id="yearlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Monthly Breakdown Table -->
+  <div class="card" style="padding: 0;">
+    <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color);">
+      <h3 style="font-size: 1.15rem; font-weight: 700;">Monthly Summary Ledger</h3>
+      <p style="font-size: 0.82rem; color: var(--text-muted);">
+        Every row is computed by Cashly using PyBasics Kit formula wrappers
+      </p>
+    </div>
+
+    <div class="table-container">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th style="text-align: right;">Income</th>
+            <th style="text-align: right;">Expenses</th>
+            <th style="text-align: right;">Net Balance</th>
+            <th style="text-align: right;">Savings</th>
+            <th style="text-align: center;">Savings Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in monthly_data %}
+          <tr>
+            <td style="font-weight: 600;">{{ d.month_name }}</td>
+            <td style="text-align: right; color: var(--emerald); font-weight: 600;">
+              {{ currency }} {{ d.income|floatformat:2 }}
+            </td>
+            <td style="text-align: right; color: #ef4444; font-weight: 600;">
+              {{ currency }} {{ d.expenses|floatformat:2 }}
+            </td>
+            <td style="text-align: right; font-weight: 700;" class="{% if d.balance >= 0 %}text-positive{% else %}text-negative{% endif %}">
+              {{ currency }} {{ d.balance|floatformat:2 }}
+            </td>
+            <td style="text-align: right; font-weight: 600;">
+              {{ currency }} {{ d.savings|floatformat:2 }}
+            </td>
+            <td style="text-align: center;">
+              {% if d.savings_rate > 0 %}
+              <span class="badge badge-income">{{ d.savings_rate }}%</span>
+              {% else %}
+              <span style="color: var(--text-light); font-size: 0.82rem;">0.0%</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="monthly-data" type="application/json">{{ monthly_data_json|safe }}</script>
+<script>
+  const monthlyDataElem = document.getElementById('monthly-data');
+  const monthlyData = monthlyDataElem ? JSON.parse(monthlyDataElem.textContent) : [];
+  const yrCtx = document.getElementById('yearlyChart');
+  if (yrCtx && monthlyData.length) {
+    new Chart(yrCtx, {
+      type: 'bar',
+      data: {
+        labels: monthlyData.map(d => d.month),
+        datasets: [
+          {
+            label: 'Income',
+            data: monthlyData.map(d => d.income),
+            backgroundColor: '#10b981',
+            borderRadius: 4,
+          },
+          {
+            label: 'Expenses',
+            data: monthlyData.map(d => d.expenses),
+            backgroundColor: '#f43f5e',
+            borderRadius: 4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Outfit', size: 12 } } },
+        },
+        scales: {
+          y: { grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Outfit' } } },
+          x: { grid: { display: false }, ticks: { font: { family: 'Outfit' } } }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In — Cashly{% endblock %}
+
+{% block content %}
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <div style="max-width: 440px; width: 100%;">
+    
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 1.8rem; font-weight: 800; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.35); margin-bottom: 14px;">$</div>
+      <h1 style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px;">Welcome to Cashly</h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px;">
+        Personal finance & budgeting powered by <strong>PyBasics Kit</strong>
+      </p>
+    </div>
+
+    <div class="card" style="box-shadow: var(--shadow-lg);">
+      <form method="post" action="{% url 'accounts:login' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input type="text" name="username" id="username" class="form-input" placeholder="e.g. demo" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
+          </div>
+          <input type="password" name="password" id="password" class="form-input" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px; padding: 12px;">
+          Sign In to Cashly
+        </button>
+      </form>
+
+      <div style="position: relative; margin: 28px 0; text-align: center;">
+        <hr style="border: 0; border-top: 1px solid var(--border-color);">
+        <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #ffffff; padding: 0 12px; font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">
+          Quick Instant Demo
+        </span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="{% url 'accounts:demo_login' 'standard' %}" class="btn btn-secondary" style="font-size: 0.88rem; justify-content: flex-start; border-left: 4px solid var(--emerald);">
+          <div style="text-align: left;">
+            <div style="font-weight: 700; color: var(--text-main);">Demo Standard User</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Alex Mugisha · Personal tracking & budgets</div>
+          </div>
+        </a>
+
+        <a href="{% url 'accounts:demo_login' 'manager' %}" class="btn btn-secondary" style="font-size: 0.88rem; justify-content: flex-start; border-left: 4px solid var(--blue);">
+          <div style="text-align: left;">
+            <div style="font-weight: 700; color: var(--text-main);">Demo Financial Manager</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Manager · Auditing & category management</div>
+          </div>
+        </a>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+        Don't have an account? <a href="{% url 'accounts:register' %}" style="color: var(--primary-600); font-weight: 600; text-decoration: none;">Create one here</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

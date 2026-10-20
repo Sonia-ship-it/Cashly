@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Transactions — Cashly{% endblock %}
+{% block page_title %}Transactions{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Header & Actions -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.4rem; font-weight: 800;">Income & Expense Ledger</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">Manage, search, and audit your financial entries</p>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      {% if can_audit %}
+      <a href="?{% if view_all %}audit_mode=0{% else %}audit_mode=1{% endif %}" class="btn btn-secondary btn-sm {% if view_all %}btn-audit-active{% endif %}">
+        {% if view_all %}Switch to Personal View{% else %}🛡️ Audit All Users (Manager Mode){% endif %}
+      </a>
+      {% endif %}
+
+      {% if perms.finances.can_export_transactions or user.is_superuser %}
+      <a href="?export=csv{% if search %}&search={{ search }}{% endif %}{% if tx_type %}&type={{ tx_type }}{% endif %}{% if cat_id %}&category={{ cat_id }}{% endif %}" class="btn btn-secondary btn-sm">
+        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Export CSV
+      </a>
+      {% endif %}
+
+      <a href="{% url 'finances:transactions_batch_create' %}" class="btn btn-secondary btn-sm" style="background: var(--primary-100); color: var(--primary-800); border-color: var(--primary-200); font-weight: 700;">
+        ⚡ Record Multiple at Once
+      </a>
+
+      <a href="{% url 'finances:transaction_create' %}" class="btn btn-primary btn-sm">
+        + New Single
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="card" style="padding: 16px 20px;">
+    <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto; gap: 12px; align-items: end;">
+      <div>
+        <label class="form-label" style="font-size: 0.8rem;">Search Description</label>
+        <input type="text" name="search" value="{{ search }}" class="form-input" placeholder="Search keywords..." style="padding: 8px 12px; font-size: 0.88rem;">
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size: 0.8rem;">Type</label>
+        <select name="type" class="form-select" style="padding: 8px 12px; font-size: 0.88rem;">
+          <option value="">All Types</option>
+          <option value="INCOME" {% if tx_type == 'INCOME' %}selected{% endif %}>Income</option>
+          <option value="EXPENSE" {% if tx_type == 'EXPENSE' %}selected{% endif %}>Expense</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size: 0.8rem;">Category</label>
+        <select name="category" class="form-select" style="padding: 8px 12px; font-size: 0.88rem;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if cat_id == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size: 0.8rem;">From Date</label>
+        <input type="date" name="start_date" value="{{ start_date }}" class="form-input" style="padding: 8px 12px; font-size: 0.88rem;">
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size: 0.8rem;">To Date</label>
+        <input type="date" name="end_date" value="{{ end_date }}" class="form-input" style="padding: 8px 12px; font-size: 0.88rem;">
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height: 38px;">Filter</button>
+        {% if search or tx_type or cat_id or start_date or end_date %}
+        <a href="{% url 'finances:transactions' %}" class="btn btn-secondary btn-sm" style="height: 38px;">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="card" style="padding: 0;">
+    <div class="table-container">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Description</th>
+            {% if view_all %}<th>User</th>{% endif %}
+            <th style="text-align: right;">Amount</th>
+            <th style="text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tx in page_obj %}
+          <tr>
+            <td style="color: var(--text-muted); font-size: 0.85rem; white-space: nowrap;">{{ tx.date|date:"Y-m-d" }}</td>
+            <td>
+              {% if tx.transaction_type == 'INCOME' %}
+              <span class="badge badge-income">Income</span>
+              {% else %}
+              <span class="badge badge-expense">Expense</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                <span class="category-dot" style="background-color: #10b981;"></span>
+                {{ tx.category.name|default:"Uncategorized" }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{{ tx.description }}</div>
+              {% if tx.notes %}<div style="font-size: 0.78rem; color: var(--text-muted);">{{ tx.notes }}</div>{% endif %}
+            </td>
+            {% if view_all %}
+            <td><span class="badge" style="background: #f1f5f9;">{{ tx.user.username }}</span></td>
+            {% endif %}
+            <td style="text-align: right; font-weight: 700; white-space: nowrap;" class="{% if tx.transaction_type == 'INCOME' %}text-income{% else %}text-expense{% endif %}">
+              {% if tx.transaction_type == 'INCOME' %}+{% else %}-{% endif %}
+              {{ currency }} {{ tx.amount|floatformat:2 }}
+            </td>
+            <td style="text-align: center; white-space: nowrap;">
+              <a href="{% url 'finances:transaction_update' tx.pk %}" style="color: var(--primary-600); margin-right: 10px; font-size: 0.85rem; font-weight: 600; text-decoration: none;">Edit</a>
+              <a href="{% url 'finances:transaction_delete' tx.pk %}" style="color: #ef4444; font-size: 0.85rem; text-decoration: none;">Delete</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              No transactions match the selected filters.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); font-size: 0.88rem;">
+      <span style="color: var(--text-muted);">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+      <div style="display: flex; gap: 8px;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tx_type %}&type={{ tx_type }}{% endif %}" class="btn btn-secondary btn-sm">Previous</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tx_type %}&type={{ tx_type }}{% endif %}" class="btn btn-secondary btn-sm">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — Cashly{% endblock %}
+{% block page_title %}Financial Dashboard{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Unread Alerts Banner -->
+  {% if notifications %}
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    {% for n in notifications %}
+    <div class="card" style="padding: 12px 16px; border-left: 3px solid {% if n.level == 'danger' %}#ef4444{% elif n.level == 'warning' %}#f59e0b{% else %}#10b981{% endif %}; background: {% if n.level == 'danger' %}#fef2f2{% elif n.level == 'warning' %}#fffbeb{% else %}#ecfdf5{% endif %}; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.15rem;">{% if n.level == 'danger' %}🚨{% elif n.level == 'warning' %}⚠️{% else %}🎉{% endif %}</span>
+        <div>
+          <a href="{{ n.link|default:'/budgets/' }}" style="font-weight: 700; font-size: 0.88rem; color: {% if n.level == 'danger' %}#991b1b{% elif n.level == 'warning' %}#92400e{% else %}#065f46{% endif %}; text-decoration: none;">
+            {{ n.title }}
+          </a>
+          <p style="font-size: 0.8rem; color: var(--text-color); margin: 2px 0 0 0;">{{ n.message }}</p>
+        </div>
+      </div>
+      <a href="{% url 'finances:notification_read' n.pk %}" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px; background: white;">
+        Dismiss
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Period & Context Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">
+        {{ summary.month_name }} {{ summary.year }} Overview
+      </h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        Calculations powered directly by <strong>PyBasics Kit</strong>
+      </p>
+    </div>
+
+    <!-- Month Filter -->
+    <form method="get" style="display: flex; gap: 10px; align-items: center;">
+      <select name="month" class="form-select" onchange="this.form.submit()" style="padding: 6px 12px; font-size: 0.88rem;">
+        <option value="1" {% if current_month == 1 %}selected{% endif %}>January</option>
+        <option value="2" {% if current_month == 2 %}selected{% endif %}>February</option>
+        <option value="3" {% if current_month == 3 %}selected{% endif %}>March</option>
+        <option value="4" {% if current_month == 4 %}selected{% endif %}>April</option>
+        <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+        <option value="6" {% if current_month == 6 %}selected{% endif %}>June</option>
+        <option value="7" {% if current_month == 7 %}selected{% endif %}>July</option>
+        <option value="8" {% if current_month == 8 %}selected{% endif %}>August</option>
+        <option value="9" {% if current_month == 9 %}selected{% endif %}>September</option>
+        <option value="10" {% if current_month == 10 %}selected{% endif %}>October</option>
+        <option value="11" {% if current_month == 11 %}selected{% endif %}>November</option>
+        <option value="12" {% if current_month == 12 %}selected{% endif %}>December</option>
+      </select>
+      <input type="number" name="year" value="{{ current_year }}" class="form-input" style="width: 85px; padding: 6px 10px; font-size: 0.88rem;" onchange="this.form.submit()">
+    </form>
+  </div>
+
+  <!-- 4 Core Financial Metrics Grid -->
+  <div class="metrics-grid">
+    <!-- Balance -->
+    <div class="metric-card">
+      <div class="metric-header">
+        <span class="metric-title">Net Balance</span>
+        <div class="metric-icon-wrap" style="background: #f0fdf4; color: #10b981;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+      <div class="metric-value {% if summary.balance >= 0 %}text-positive{% else %}text-negative{% endif %}">
+        {{ currency }} {{ summary.balance|floatformat:2 }}
+      </div>
+      <div class="metric-sub">
+        {% if summary.balance >= 0 %}
+        <span style="color: #059669; font-weight: 600;">● Surplus funds available</span>
+        {% else %}
+        <span style="color: #ef4444; font-weight: 600;">● Operating at a deficit</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Income -->
+    <div class="metric-card income">
+      <div class="metric-header">
+        <span class="metric-title">Total Income</span>
+        <div class="metric-icon-wrap" style="background: #ecfdf5; color: #10b981;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+        </div>
+      </div>
+      <div class="metric-value">{{ currency }} {{ summary.income|floatformat:2 }}</div>
+      <div class="metric-sub">
+        {% if summary.income_change_pct != 0 %}
+        <span class="trend-badge {% if summary.income_change_pct > 0 %}up{% else %}down{% endif %}">
+          {% if summary.income_change_pct > 0 %}↑{% else %}↓{% endif %} {{ summary.income_change_pct }}% vs last month
+        </span>
+        {% else %}
+        <span>Recorded period inflows</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="metric-card expense">
+      <div class="metric-header">
+        <span class="metric-title">Total Expenses</span>
+        <div class="metric-icon-wrap" style="background: #fef2f2; color: #ef4444;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+        </div>
+      </div>
+      <div class="metric-value">{{ currency }} {{ summary.expenses|floatformat:2 }}</div>
+      <div class="metric-sub">
+        {% if summary.expense_change_pct != 0 %}
+        <span class="trend-badge {% if summary.expense_change_pct < 0 %}up{% else %}down{% endif %}">
+          {% if summary.expense_change_pct > 0 %}↑{% else %}↓{% endif %} {{ summary.expense_change_pct }}% vs last month
+        </span>
+        {% else %}
+        <span>Recorded period outflows</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Budget Usage -->
+    <div class="metric-card budget">
+      <div class="metric-header">
+        <span class="metric-title">Budget Used</span>
+        <div class="metric-icon-wrap" style="background: #f5f3ff; color: #8b5cf6;">
+          <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+      </div>
+      <div class="metric-value">{{ summary.overall_budget_usage }}%</div>
+      <div class="metric-sub">
+        <span>{{ currency }} {{ summary.overall_budget_remaining|floatformat:0 }} remaining</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Budgets & Spending Distribution Row -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+    
+    <!-- Category Budgets -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700;">Category Budgets</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+              Active monthly spending ceilings
+            </p>
+          </div>
+          <a href="{% url 'finances:budgets' %}" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 3px 8px;">Manage</a>
+        </div>
+
+        {% if budgets %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          {% for b in budgets|slice:":4" %}
+          <div style="padding-bottom: 10px; {% if not forloop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; margin-bottom: 5px;">
+              <span style="font-weight: 600;">{{ b.budget.category.name }}</span>
+              <span style="font-size: 0.78rem;">
+                <strong>{{ currency }} {{ b.spent|floatformat:0 }}</strong> / {{ currency }} {{ b.limit|floatformat:0 }}
+                <span class="badge {% if b.status == 'exceeded' %}badge-expense{% elif b.status == 'warning' %}badge-warning{% else %}badge-income{% endif %}" style="margin-left: 6px; font-size: 0.7rem; padding: 2px 5px;">
+                  {{ b.usage_pct }}%
+                </span>
+              </span>
+            </div>
+            <div class="progress-bar-container" style="height: 6px; margin-bottom: 5px;">
+              <div class="progress-bar-fill {% if b.status == 'exceeded' %}progress-fill-rose{% elif b.status == 'warning' %}progress-fill-amber{% else %}progress-fill-emerald{% endif %}"
+                   data-width="{{ b.usage_pct|floatformat:0 }}"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-muted);">
+              <span>Left: <strong class="{% if b.remaining < 0 %}text-negative{% else %}text-emerald{% endif %}">{{ currency }} {{ b.remaining|floatformat:0 }}</strong></span>
+              <span>Daily: {{ currency }} {{ b.daily_allowance|floatformat:0 }}/day</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 30px 0; color: var(--text-muted); font-size: 0.85rem;">
+          No category budgets set for this month.
+          <div style="margin-top: 12px;">
+            <a href="{% url 'finances:budgets_bulk_setup' %}" class="btn btn-primary btn-sm">⚡ Plan Monthly Budgets</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Category Spending Breakdown -->
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700;">Expense Breakdown</h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+              Top category spending distributions
+            </p>
+          </div>
+        </div>
+
+        {% if expense_breakdown.items %}
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          {% for cat in expense_breakdown.items|slice:":5" %}
+          <div style="padding-bottom: 10px; {% if not forloop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+            <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 6px;">
+              <span style="font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                <span class="category-dot" style="background-color: {{ cat.color }};"></span>
+                {{ cat.name }}
+              </span>
+              <span>
+                <strong>{{ currency }} {{ cat.total|floatformat:0 }}</strong>
+                <span style="color: var(--text-muted); margin-left: 6px; font-size: 0.8rem;">({{ cat.percentage }}%)</span>
+              </span>
+            </div>
+            <div class="progress-bar-container" style="height: 7px;">
+              <div class="progress-bar-fill progress-fill-emerald" data-width="{{ cat.percentage|floatformat:0 }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 36px 0; color: var(--text-muted); font-size: 0.9rem;">
+          No expense records recorded for this month yet.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Recent Transactions Table -->
+  <div class="card">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700;">Recent Transactions</h3>
+        <p style="font-size: 0.82rem; color: var(--text-muted);">Latest recorded financial activity</p>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <a href="{% url 'finances:transactions' %}" class="btn btn-secondary btn-sm">View All</a>
+        <a href="{% url 'finances:transaction_create' %}" class="btn btn-primary btn-sm">+ New Transaction</a>
+      </div>
+    </div>
+
+    {% if recent_transactions %}
+    <div class="table-container">
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Category</th>
+            <th>Description</th>
+            <th style="text-align: right;">Amount</th>
+            <th style="text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tx in recent_transactions %}
+          <tr>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">{{ tx.date|date:"M d, Y" }}</td>
+            <td>
+              {% if tx.transaction_type == 'INCOME' %}
+              <span class="badge badge-income">Income</span>
+              {% else %}
+              <span class="badge badge-expense">Expense</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                <span class="category-dot" style="background-color: #10b981;"></span>
+                {{ tx.category.name|default:"Uncategorized" }}
+              </span>
+            </td>
+            <td>{{ tx.description }}</td>
+            <td style="text-align: right; font-weight: 700;" class="{% if tx.transaction_type == 'INCOME' %}text-income{% else %}text-expense{% endif %}">
+              {% if tx.transaction_type == 'INCOME' %}+{% else %}-{% endif %}
+              {{ currency }} {{ tx.amount|floatformat:2 }}
+            </td>
+            <td style="text-align: center;">
+              <a href="{% url 'finances:transaction_update' tx.pk %}" style="color: var(--primary-600); margin-right: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600;">Edit</a>
+              <a href="{% url 'finances:transaction_delete' tx.pk %}" style="color: #ef4444; text-decoration: none; font-size: 0.85rem;">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 32px 0; color: var(--text-muted);">
+      No transactions recorded yet. Click <strong>+ New Transaction</strong> to add one!
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

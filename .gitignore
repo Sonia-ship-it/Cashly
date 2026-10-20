@@ -1,0 +1,31 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django database and logs
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# IDE & Editor artifacts
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
