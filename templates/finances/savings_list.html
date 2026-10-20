@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Savings Goals — Cashly{% endblock %}
+{% block page_title %}Savings Goals{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.4rem; font-weight: 800;">Targeted Savings & Milestones</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">Plan and track progress toward your financial milestones</p>
+    </div>
+
+    <a href="{% url 'finances:savings_create' %}" class="btn btn-primary btn-sm">
+      + New Savings Goal
+    </a>
+  </div>
+
+  <!-- Goals Grid -->
+  {% if goals %}
+  <div class="card-grid-compact">
+    {% for g in goals %}
+    <div class="compact-card">
+      <div>
+        <!-- Header row -->
+        <div class="card-header-row">
+          <div class="card-header-left">
+            <div class="card-dot-icon" style="background: var(--primary-100); color: var(--primary-700);">
+              🎯
+            </div>
+            <h3 class="card-title" title="{{ g.goal.title }}">{{ g.goal.title }}</h3>
+          </div>
+
+          {% if g.is_achieved %}
+          <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.72rem; padding: 2px 7px;">
+            🎉 Achieved
+          </span>
+          {% else %}
+          <span class="badge badge-income" style="font-size: 0.72rem; padding: 2px 7px;">
+            {{ g.progress_pct }}%
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Amount breakdown -->
+        <div class="card-amount-row">
+          <div>
+            <span class="card-amount-primary">{{ currency }} {{ g.current|floatformat:0 }}</span>
+            <span class="card-amount-secondary">saved</span>
+          </div>
+          <span class="card-amount-secondary">
+            Target: <strong>{{ currency }} {{ g.target|floatformat:0 }}</strong>
+          </span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-container" style="height: 6px; margin-bottom: 6px;">
+          <div class="progress-bar-fill progress-fill-emerald" data-width="{{ g.progress_pct|floatformat:0 }}"></div>
+        </div>
+      </div>
+
+      <!-- Summary row (Remaining + View Details Toggle) -->
+      <div>
+        <div class="card-summary-row">
+          <div>
+            <span style="color: var(--text-muted); font-size: 0.76rem;">Remaining: </span>
+            <strong class="text-emerald">
+              {{ currency }} {{ g.remaining_to_save|floatformat:0 }}
+            </strong>
+          </div>
+          <button type="button" class="btn-view-details" onclick="toggleCardDetails('savings-details-{{ g.goal.pk }}', this)" aria-expanded="false">
+            View Details ▾
+          </button>
+        </div>
+
+        <!-- Hidden Details Drawer -->
+        <div id="savings-details-{{ g.goal.pk }}" class="card-details-drawer">
+          <div class="card-details-list">
+            {% if g.goal.target_date %}
+            <div class="card-details-item">
+              <span class="card-details-label">Target Date:</span>
+              <span class="card-details-val">{{ g.goal.target_date|date:"M d, Y" }} ({% if g.days_left > 0 %}{{ g.days_left }}d left{% else %}Passed{% endif %})</span>
+            </div>
+            {% endif %}
+            {% if g.monthly_needed %}
+            <div class="card-details-item">
+              <span class="card-details-label">Suggested Monthly:</span>
+              <span class="card-details-val" style="color: var(--primary-700);">{{ currency }} {{ g.monthly_needed|floatformat:0 }}/mo</span>
+            </div>
+            {% endif %}
+            {% if g.goal.notes %}
+            <div class="card-details-item" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="card-details-label">Notes:</span>
+              <span style="color: var(--text-main); font-size: 0.76rem;">{{ g.goal.notes }}</span>
+            </div>
+            {% endif %}
+          </div>
+          <div class="card-drawer-actions">
+            <a href="{% url 'finances:savings_delete' g.goal.pk %}" class="btn-card-action-delete" onclick="return confirm('Delete this savings goal?')">
+              🗑 Delete
+            </a>
+            <a href="{% url 'finances:savings_contribute' g.goal.pk %}" class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.76rem;">
+              + Contribute
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="text-align: center; padding: 48px 20px;">
+    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">No savings goals defined yet</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto 20px auto;">
+      Create targeted savings milestones (like an emergency fund, travel, or tuition) to track contributions and build wealth.
+    </p>
+    <a href="{% url 'finances:savings_create' %}" class="btn btn-primary">+ Create Your First Goal</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

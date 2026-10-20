@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Multiple Transactions — Cashly{% endblock %}
+{% block page_title %}Batch Transaction Entry{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Header Card -->
+  <div class="card" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 4px;">⚡ Record Multiple Transactions at Once</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Add several receipts, bills, or income deposits simultaneously in a quick spreadsheet view.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addRow()" style="font-weight: 600;">
+        + Add Another Row
+      </button>
+      <a href="{% url 'finances:transactions' %}" class="btn btn-secondary btn-sm">
+        Back to Transactions
+      </a>
+    </div>
+  </div>
+
+  <!-- Batch Form -->
+  <form method="post" id="batchForm">
+    {% csrf_token %}
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 14px 20px; background: var(--bg-hover); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; font-size: 0.92rem;">Transaction Entries</span>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Rows with blank amount or description will be automatically skipped</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="table" style="margin: 0; min-width: 880px;" id="batchTable">
+          <thead>
+            <tr>
+              <th style="width: 140px;">Date</th>
+              <th style="width: 130px;">Type</th>
+              <th style="width: 190px;">Category</th>
+              <th style="min-width: 200px;">Description</th>
+              <th style="width: 150px;">Amount ({{ currency }})</th>
+              <th style="width: 170px;">Notes (Optional)</th>
+              <th style="width: 50px; text-align: center;"></th>
+            </tr>
+          </thead>
+          <tbody id="rowsBody">
+            <!-- 5 Initial Default Rows -->
+            {% for i in "12345" %}
+            <tr class="tx-row">
+              <td>
+                <input type="date" name="date[]" value="{{ today_str }}" class="form-input" style="padding: 6px 10px; font-size: 0.85rem;" required>
+              </td>
+              <td>
+                <select name="transaction_type[]" class="form-select tx-type-select" style="padding: 6px 10px; font-size: 0.85rem;" onchange="updateRowColor(this); recalculateBatchTotals();">
+                  <option value="EXPENSE" selected>Expense</option>
+                  <option value="INCOME">Income</option>
+                </select>
+              </td>
+              <td>
+                <select name="category[]" class="form-select" style="padding: 6px 10px; font-size: 0.85rem;">
+                  <option value="">-- Uncategorized --</option>
+                  {% for cat in categories %}
+                  <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.category_type }})</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <input type="text" name="description[]" placeholder="e.g. Lunch with team" class="form-input" style="padding: 6px 10px; font-size: 0.85rem;">
+              </td>
+              <td>
+                <input type="number" step="any" min="0" name="amount[]" placeholder="0.00" class="form-input tx-amount-input" style="padding: 6px 10px; font-size: 0.85rem; font-weight: 600;" oninput="recalculateBatchTotals()">
+              </td>
+              <td>
+                <input type="text" name="notes[]" placeholder="Optional notes" class="form-input" style="padding: 6px 10px; font-size: 0.85rem;">
+              </td>
+              <td style="text-align: center;">
+                <button type="button" class="btn btn-sm" onclick="removeRow(this)" style="background: transparent; color: #ef4444; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px;" title="Remove row">
+                  &times;
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Add Row Action Button below table -->
+      <div style="padding: 12px 20px; background: var(--bg-hover); border-top: 1px solid var(--border-color);">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addRow()" style="font-weight: 600;">
+          + Add Another Row
+        </button>
+      </div>
+
+      <!-- Bottom Live Total & Submit Bar -->
+      <div style="padding: 18px 24px; background: var(--primary-50); border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+        <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap;">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Income:</span>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #059669;">
+              +{{ currency }} <span id="batchIncomeTotal">0.00</span>
+            </div>
+          </div>
+
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Expenses:</span>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #dc2626;">
+              -{{ currency }} <span id="batchExpenseTotal">0.00</span>
+            </div>
+          </div>
+
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Net Batch Impact:</span>
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-color);">
+              {{ currency }} <span id="batchNetTotal">0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <a href="{% url 'finances:transactions' %}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+            💾 Save All Transactions
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</div>
+
+<script>
+function addRow() {
+  const tbody = document.getElementById('rowsBody');
+  const templateRow = tbody.querySelector('.tx-row');
+  const newRow = templateRow.cloneNode(true);
+
+  // Clear inputs in cloned row
+  newRow.querySelectorAll('input').forEach(input => {
+    if (input.name === 'date[]') {
+      input.value = '{{ today_str }}';
+    } else {
+      input.value = '';
+    }
+  });
+
+  const typeSelect = newRow.querySelector('.tx-type-select');
+  if (typeSelect) {
+    typeSelect.value = 'EXPENSE';
+  }
+
+  const catSelect = newRow.querySelector('select[name="category[]"]');
+  if (catSelect) {
+    catSelect.selectedIndex = 0;
+  }
+
+  tbody.appendChild(newRow);
+  recalculateBatchTotals();
+}
+
+function removeRow(btn) {
+  const tbody = document.getElementById('rowsBody');
+  const rows = tbody.querySelectorAll('.tx-row');
+  if (rows.length > 1) {
+    btn.closest('tr').remove();
+    recalculateBatchTotals();
+  } else {
+    // If only 1 row left, just clear values
+    const tr = btn.closest('tr');
+    tr.querySelectorAll('input[type="text"], input[type="number"]').forEach(i => i.value = '');
+    recalculateBatchTotals();
+  }
+}
+
+function recalculateBatchTotals() {
+  let income = 0;
+  let expense = 0;
+
+  const rows = document.querySelectorAll('.tx-row');
+  rows.forEach(row => {
+    const type = row.querySelector('.tx-type-select').value;
+    const amtInput = row.querySelector('.tx-amount-input');
+    const amt = parseFloat(amtInput.value);
+
+    if (!isNaN(amt) && amt > 0) {
+      if (type === 'INCOME') {
+        income += amt;
+      } else {
+        expense += amt;
+      }
+    }
+  });
+
+  const net = income - expense;
+
+  document.getElementById('batchIncomeTotal').textContent = income.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('batchExpenseTotal').textContent = expense.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  
+  const netEl = document.getElementById('batchNetTotal');
+  netEl.textContent = (net >= 0 ? '+' : '') + net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  netEl.style.color = net >= 0 ? '#059669' : '#dc2626';
+}
+
+function updateRowColor(select) {
+  // subtle visual indicator
+  const row = select.closest('tr');
+  if (select.value === 'INCOME') {
+    row.style.background = 'rgba(16, 185, 129, 0.04)';
+  } else {
+    row.style.background = 'transparent';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', recalculateBatchTotals);
+</script>
+{% endblock %}
