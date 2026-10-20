@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Monthly Budget Planner — Cashly{% endblock %}
+{% block page_title %}Monthly Budget Planner{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Header Card -->
+  <div class="card" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 4px;">⚡ Set All Category Budgets at Once</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem;">
+        Define your monthly spending limits across all expense categories in a single view.
+      </p>
+    </div>
+
+    <!-- Month & Year Selector -->
+    <form method="get" id="periodForm" style="display: flex; gap: 8px; align-items: center;">
+      <select name="month" class="form-select" onchange="document.getElementById('periodForm').submit()" style="padding: 7px 12px; font-size: 0.88rem;">
+        {% for m_num, m_name in months %}
+        <option value="{{ m_num }}" {% if m_num == current_month %}selected{% endif %}>{{ m_name }}</option>
+        {% endfor %}
+      </select>
+      <input type="number" name="year" value="{{ current_year }}" class="form-input" style="width: 85px; padding: 7px 10px; font-size: 0.88rem;" onchange="document.getElementById('periodForm').submit()">
+    </form>
+  </div>
+
+  <!-- Budget Planner Form -->
+  <form method="post" id="bulkBudgetForm">
+    {% csrf_token %}
+    <input type="hidden" name="month" value="{{ current_month }}">
+    <input type="hidden" name="year" value="{{ current_year }}">
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; background: var(--bg-hover); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; font-size: 0.95rem;">Planning Period: {{ month_name }} {{ current_year }}</span>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Leave amount blank or 0 to skip a category</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Category</th>
+              <th style="width: 35%;">Monthly Limit ({{ currency }})</th>
+              <th style="width: 20%;">Alert Threshold (%)</th>
+              <th style="width: 10%; text-align: center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in category_rows %}
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 38px; height: 38px; border-radius: 10px; background: {{ r.category.color }}20; color: {{ r.category.color }}; display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                    #
+                  </div>
+                  <div>
+                    <div style="font-weight: 600; font-size: 0.92rem;">{{ r.category.name }}</div>
+                    <span style="font-size: 0.78rem; color: var(--text-muted);">Expense category</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div style="position: relative;">
+                  <input type="number"
+                         step="any"
+                         min="0"
+                         name="amount_{{ r.category.id }}"
+                         id="amt_{{ r.category.id }}"
+                         value="{{ r.amount }}"
+                         placeholder="0.00"
+                         class="form-input budget-amount-input"
+                         style="padding-left: 12px; font-weight: 600;"
+                         oninput="recalculateTotal()">
+                </div>
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <input type="number"
+                         step="any"
+                         min="0"
+                         max="100"
+                         name="threshold_{{ r.category.id }}"
+                         value="{{ r.threshold }}"
+                         placeholder="80"
+                         class="form-input"
+                         style="width: 80px; text-align: center; font-weight: 600;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">%</span>
+                </div>
+              </td>
+              <td style="text-align: center;">
+                {% if r.budget %}
+                <span class="badge badge-income" style="font-size: 0.75rem;">Active</span>
+                {% else %}
+                <span class="badge badge-neutral" style="font-size: 0.75rem; background: var(--bg-hover); color: var(--text-muted);">Not Set</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Live Summary Bar at bottom of table -->
+      <div style="padding: 18px 24px; background: var(--primary-50); border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Total Planned Budget for {{ month_name }}:</span>
+          <div style="font-size: 1.45rem; font-weight: 800; color: var(--primary-800);">
+            {{ currency }} <span id="liveTotalDisplay">{{ total_planned|floatformat:2 }}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <a href="{% url 'finances:budgets' %}?month={{ current_month }}&year={{ current_year }}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 22px; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+            💾 Save All Budgets
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+</div>
+
+<script>
+function recalculateTotal() {
+  let total = 0;
+  const inputs = document.querySelectorAll('.budget-amount-input');
+  inputs.forEach(input => {
+    const val = parseFloat(input.value);
+    if (!isNaN(val) && val > 0) {
+      total += val;
+    }
+  });
+  const display = document.getElementById('liveTotalDisplay');
+  if (display) {
+    display.textContent = total.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+}
+document.addEventListener('DOMContentLoaded', recalculateTotal);
+</script>
+{% endblock %}
